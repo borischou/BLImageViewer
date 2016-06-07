@@ -12,6 +12,8 @@
 
 -(instancetype)initWithFrame:(CGRect)frame images:(NSArray *)images index:(NSInteger)index;
 
+-(instancetype)initWithFrame:(CGRect)frame URLs:(NSArray *)urls index:(NSInteger)index;
+
 -(void)present;
 
 @end

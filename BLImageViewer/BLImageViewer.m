@@ -7,6 +7,10 @@
 //
 
 #import "BLImageViewer.h"
+#import "UIColor+Custom.h"
+#import "BLProgressView.h"
+#import "BLPopNote.h"
+#import <YYWebImage.h>
 
 #define bWidth [UIScreen mainScreen].bounds.size.width
 #define bHeight [UIScreen mainScreen].bounds.size.height
@@ -19,8 +23,10 @@
 @property (strong, nonatomic) UIPageControl *pageControl; //图片数量不超过9张时显示page control
 @property (assign, nonatomic) NSInteger count;
 @property (assign, nonatomic) NSInteger index;
+@property (assign, nonatomic) BOOL isSaved;
 
 @property (strong, nonatomic) UITapGestureRecognizer *singleTap;
+@property (strong, nonatomic) UILongPressGestureRecognizer *longPress;
 
 @end
 
@@ -52,6 +58,28 @@
     return self;
 }
 
+-(instancetype)initWithFrame:(CGRect)frame URLs:(NSArray *)urls index:(NSInteger)index
+{
+    self = [super initWithFrame:frame];
+    if (self)
+    {
+        self.backgroundColor = [UIColor blackColor];
+        self.alpha = 0.0;
+        [UIView animateWithDuration:0.2 delay:0.0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+            self.alpha = 1.0;
+        } completion:^(BOOL finished) {}];
+        _count = urls.count;
+        _index = _count >= index ? index : 0;
+        _isSaved = NO;
+        [self loadMainScrollViewWithURLs:urls index:index];
+        
+        if (urls.count <= 9 && urls.count > 1) {
+            [self loadPageControl];
+        }
+    }
+    return self;
+}
+
 -(void)present
 {
     UIWindow *window = [UIApplication sharedApplication].keyWindow;
@@ -64,6 +92,7 @@
     }];
 }
 
+//image
 -(void)loadMainScrollViewWithImages:(NSArray *)images index:(NSInteger)index
 {
     _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, bWidth, bHeight)];
@@ -93,6 +122,131 @@
     [self loadSubScrollViewWithImage:images.firstObject originX:bWidth*(1+images.count)];
 }
 
+//url
+-(void)loadMainScrollViewWithURLs:(NSArray *)urls index:(NSInteger)index
+{
+    _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, bWidth, bHeight)];
+    _scrollView.delegate = self;
+    _scrollView.contentSize = CGSizeMake(bWidth*(2+_count), bHeight);
+    _scrollView.contentOffset = CGPointMake(bWidth*(index+1), 0);
+    _scrollView.pagingEnabled = YES;
+    _scrollView.showsHorizontalScrollIndicator = NO;
+    _scrollView.userInteractionEnabled = YES;
+    _scrollView.alwaysBounceVertical = NO;
+    _scrollView.alwaysBounceHorizontal = YES;
+    
+    _singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTapped:)];
+    [_scrollView addGestureRecognizer:_singleTap];
+    [self addSubview:_scrollView];
+    
+    //第一个UIImageView放最后一张图
+    [self loadSubScrollViewWithURL:urls.lastObject originX:0];
+    
+    //第二个UIImageView开始顺序放图
+    for (int i = 0; i < [urls count]; i ++)
+    {
+        [self loadSubScrollViewWithURL:urls[i] originX:bWidth*(i+1)];
+    }
+    
+    //最后一个UIImageView放第一张图
+    [self loadSubScrollViewWithURL:urls.firstObject originX:bWidth*(1+urls.count)];
+}
+
+//url
+-(void)loadSubScrollViewWithURL:(NSString *)url originX:(CGFloat)originX
+{
+    UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(originX, 0, bWidth, bHeight)];
+    
+    //傲娇的YY，必须new才正常
+    YYAnimatedImageView *imageView = [YYAnimatedImageView new];
+    [imageView setFrame:CGRectMake(0, 0, bWidth, bHeight)];
+    [imageView setContentMode:UIViewContentModeScaleAspectFit];
+    [imageView setUserInteractionEnabled:YES];
+    
+    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(imageViewDoubleTapped:)];
+    [doubleTap setNumberOfTapsRequired:2];
+    [imageView addGestureRecognizer:doubleTap];
+    
+    _longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(imageViewLongPressed:)];
+    [_longPress setMinimumPressDuration:0.7];
+    [imageView addGestureRecognizer:_longPress];
+    
+    //单击双击共存时优先检测双击，若无双击则执行单击回调方法
+    [_singleTap requireGestureRecognizerToFail:doubleTap];
+    
+    if (_index == originX/bWidth-1)
+    {
+        _imageView = imageView;
+    }
+    
+    [scrollView setDelegate:self];
+    [scrollView setUserInteractionEnabled:YES];
+    [scrollView setMaximumZoomScale:2.0];
+    [scrollView setMinimumZoomScale:0.5];
+    
+    [scrollView addSubview:imageView];
+    [_scrollView addSubview:scrollView];
+    
+    [self loadProgressView:imageView url:url originX:originX scrollView:scrollView];
+}
+
+-(void)imageViewLongPressed:(UILongPressGestureRecognizer *)longPress
+{
+    if (!_isSaved)
+    {
+        [self saveImageToSystemAlbum:_imageView.image];
+    }
+    else
+    {
+        [BLPopNote popNote:@"图片已保存"];
+    }
+}
+
+-(void)saveImageToSystemAlbum:(UIImage *)image
+{
+    UIImageWriteToSavedPhotosAlbum(image, self, @selector(image:didFinishSavingWithError:contextInfo:), NULL);
+}
+
+-(void)image:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo
+{
+    NSString *msg;
+    if (!error)
+    {
+        msg = @"图片保存成功";
+        _isSaved = YES;
+    }
+    else
+    {
+        msg = @"图片保存失败";
+        _isSaved = NO;
+    }
+    [BLPopNote popNote:msg];
+}
+
+-(void)loadProgressView:(YYAnimatedImageView *)imageView url:(NSString *)url originX:(CGFloat)originX scrollView:(UIScrollView *)scrollView
+{
+    BLProgressView *progressView = [[BLProgressView alloc] initWithFrame:CGRectMake(0, 0, 40, 40)];
+    progressView.center = CGPointMake(bWidth/2, bHeight/2);
+    [scrollView addSubview:progressView];
+    
+    [imageView yy_setImageWithURL:[NSURL URLWithString:url] placeholder:nil options:YYWebImageOptionProgressiveBlur|YYWebImageOptionSetImageWithFadeAnimation progress:^(NSInteger receivedSize, NSInteger expectedSize)
+     {
+         //转换为百分比进度传入progress view
+         float progress = fabsf((float)receivedSize/(float)expectedSize);
+         [progressView setPercent:progress];
+     }
+                        transform:nil
+                       completion:^(UIImage *image, NSURL *url, YYWebImageFromType from, YYWebImageStage stage, NSError *error)
+     {
+         if (!error)
+         {
+             [progressView removeFromSuperview];
+             [self resizeImage:image imageView:imageView originX:originX scrollView:scrollView];
+         }
+     }];
+}
+
+//image
 -(void)loadSubScrollViewWithImage:(UIImage *)image originX:(CGFloat)originX
 {
     UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(originX, 0, bWidth, bHeight)];

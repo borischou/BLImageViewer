@@ -25,7 +25,13 @@
     [button setBackgroundColor:[UIColor redColor]];
     [button addTarget:self action:@selector(buttonPressed:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:button];
-    _iv = [[BLImageViewer alloc] initWithFrame:[UIScreen mainScreen].bounds images:@[[UIImage imageNamed:@"pic.jpg"], [UIImage imageNamed:@"pic2.jpg"]] index:0];
+    
+    NSArray *urls = @[
+                      @"http://img1.gtimg.com/sports/pics/hv1/157/174/2080/135296527.jpg",
+                      @"http://cms-origin-cn.battle.net/cms/blog_header/vm/VM2GBUX3YRDO1446721233284.jpg"
+                      ];
+    
+    _iv = [[BLImageViewer alloc] initWithFrame:[UIScreen mainScreen].bounds URLs:urls index:0];
 }
 
 - (void)didReceiveMemoryWarning {
