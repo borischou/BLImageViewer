@@ -25,7 +25,7 @@
     [button setBackgroundColor:[UIColor redColor]];
     [button addTarget:self action:@selector(buttonPressed:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:button];
-    _iv = [[BLImageViewer alloc] initWithFrame:[UIScreen mainScreen].bounds images:@[[UIImage imageNamed:@"pic.jpg"]] index:0];
+    _iv = [[BLImageViewer alloc] initWithFrame:[UIScreen mainScreen].bounds images:@[[UIImage imageNamed:@"pic.jpg"], [UIImage imageNamed:@"pic2.jpg"]] index:0];
 }
 
 - (void)didReceiveMemoryWarning {
