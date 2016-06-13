@@ -14,7 +14,7 @@
 
 #define bWidth [UIScreen mainScreen].bounds.size.width
 #define bHeight [UIScreen mainScreen].bounds.size.height
-#define kMaxPhotoCountForUploading 8
+#define COUNT_MAX_PHOTO_FOR_PAGE_CONTROL 8
 
 @interface BLImageViewer () <UIScrollViewDelegate>
 
@@ -50,7 +50,7 @@
         }
         [self loadMainScrollViewWithImages:images index:index];
         
-        if (_count <= kMaxPhotoCountForUploading && _count > 1)
+        if (_count <= COUNT_MAX_PHOTO_FOR_PAGE_CONTROL && _count > 1)
         {
             [self loadPageControl];
         }
@@ -73,7 +73,7 @@
         _isSaved = NO;
         [self loadMainScrollViewWithURLs:urls index:index];
         
-        if (urls.count <= 9 && urls.count > 1) {
+        if (urls.count <= COUNT_MAX_PHOTO_FOR_PAGE_CONTROL && urls.count > 1) {
             [self loadPageControl];
         }
     }
