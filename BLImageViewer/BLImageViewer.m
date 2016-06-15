@@ -32,6 +32,16 @@
 
 @implementation BLImageViewer
 
+-(instancetype)initWithImages:(NSArray *)images index:(NSInteger)index
+{
+    return [self initWithFrame:[UIScreen mainScreen].bounds images:images index:index];
+}
+
+-(instancetype)initWithURLs:(NSArray *)urls index:(NSInteger)index
+{
+    return [self initWithFrame:[UIScreen mainScreen].bounds URLs:urls index:index];
+}
+
 -(instancetype)initWithFrame:(CGRect)frame images:(NSArray *)images index:(NSInteger)index
 {
     self = [super initWithFrame:frame];
